@@ -739,6 +739,7 @@ static int compact_node(int nid, bool sync)
 }
 
 /* Compact all nodes in the system */
+
 int compact_nodes(bool sync)
 {
 	int nid;
