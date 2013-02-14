@@ -2418,6 +2418,13 @@ config ATHEROS_WIFI
 	bool "ATHEROS WIFI"
 
 config NL80211_TESTMODE
-	bool "NL80211 TESTMODE" 
+	bool "NL80211 TESTMODE"
+
+config FORCE_FAST_CHARGE
+	bool "Force AC charge mode at will"
+	default y
+	help
+	  A simple sysfs interface to force adapters that
+	  are detected as USB to charge as AC.
 
 endif
