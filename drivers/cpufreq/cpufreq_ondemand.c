@@ -1091,7 +1091,7 @@ static void dbs_refresh_callback(struct work_struct *work)
 
 	if (policy->cur < touch_poke_freq) {
 		//policy->cur = policy->max;
-		printk(KERN_ERR "%s: set cpufreq to (%d) directly due to input events!\n", __func__, touch_poke_freq);
+		//printk(KERN_ERR "%s: set cpufreq to (%d) directly due to input events!\n", __func__, touch_poke_freq);
 		__cpufreq_driver_target(policy, touch_poke_freq,
 					CPUFREQ_RELATION_L);
 		this_dbs_info->prev_cpu_idle = get_cpu_idle_time(cpu,
