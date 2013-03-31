@@ -523,6 +523,10 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 	/* allow the user to force governor changes from one core to apply to the other */
 #ifdef CONFIG_LINK_CPU_GOVERNORS
 	if (force_cpu_gov_sync != 0) {
+		int cpu_alt_id = policy->cpu ? 0 : 1;
+		if (!cpu_online(cpu_alt_id)) {					
+			cpu_up(cpu_alt_id);
+		}
 		ret = cpufreq_get_policy(&new_policy, policy->cpu ? 0 : 1);
 		if(!ret) {
 			struct cpufreq_policy* cpu_alt=cpufreq_cpu_get(policy->cpu ? 0 : 1);
