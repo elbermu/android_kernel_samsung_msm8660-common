@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -34,6 +34,7 @@
 #include <linux/cpufreq.h>
 #include <linux/kernel_stat.h>
 #include <linux/tick.h>
+#include "acpuclock.h"
 
 #define MAX_LONG_SIZE 24
 #define DEFAULT_RQ_POLL_JIFFIES 1
@@ -41,6 +42,7 @@
 
 struct notifier_block freq_transition;
 struct notifier_block cpu_hotplug;
+struct notifier_block freq_policy;
 
 struct cpu_load_data {
        cputime64_t prev_cpu_idle;
@@ -121,9 +123,6 @@ static int update_average_load(unsigned int freq, unsigned int cpu)
 	iowait_time = (unsigned int) (cur_iowait_time - pcpu->prev_cpu_iowait);
 	pcpu->prev_cpu_iowait = cur_iowait_time;
 
-	if (idle_time >= iowait_time)
-		idle_time -= iowait_time;
-
 	if (unlikely(!wall_time || wall_time < idle_time))
 		return 0;
 
@@ -199,6 +198,8 @@ static int cpu_hotplug_handler(struct notifier_block *nb,
 
 	switch (val) {
 	case CPU_ONLINE:
+		if (!this_cpu->cur_freq)
+			this_cpu->cur_freq = acpuclk_get_rate(cpu);
 	case CPU_ONLINE_FROZEN:
 		this_cpu->avg_load_maxfreq = 0;
 	}
@@ -235,6 +236,23 @@ unsigned long flags = 0;
 }
 EXPORT_SYMBOL(get_rq_info);
 #endif
+
+static int freq_policy_handler(struct notifier_block *nb,
+			unsigned long event, void *data)
+{
+	struct cpufreq_policy *policy = data;
+	struct cpu_load_data *this_cpu = &per_cpu(cpuload, policy->cpu);
+
+	if (event != CPUFREQ_NOTIFY)
+		goto out;
+
+	this_cpu->policy_max = policy->max;
+
+	pr_debug("Policy max changed from %u to %u, event %lu\n",
+			this_cpu->policy_max, policy->max, event);
+out:
+	return NOTIFY_DONE;
+}
 
 #ifdef CONFIG_SEC_DVFS_DUAL
 static int is_dual_locked = 0;
@@ -513,13 +531,19 @@ static int __init msm_rq_stats_init(void)
 		mutex_init(&pcpu->cpu_load_mutex);
 		cpufreq_get_policy(&cpu_policy, i);
 		pcpu->policy_max = cpu_policy.cpuinfo.max_freq;
+		if (cpu_online(i))
+			pcpu->cur_freq = acpuclk_get_rate(i);
 		cpumask_copy(pcpu->related_cpus, cpu_policy.cpus);
 	}
 	freq_transition.notifier_call = cpufreq_transition_handler;
 	cpu_hotplug.notifier_call = cpu_hotplug_handler;
+	freq_policy.notifier_call = freq_policy_handler;
 	cpufreq_register_notifier(&freq_transition,
 				CPUFREQ_TRANSITION_NOTIFIER);
 	register_hotcpu_notifier(&cpu_hotplug);
+	cpufreq_register_notifier(&freq_policy,
+					CPUFREQ_POLICY_NOTIFIER);
+
 	return ret;
 }
 late_initcall(msm_rq_stats_init);

@@ -334,6 +334,7 @@ ifdef CONFIG_MSM_MPDEC
 obj-y += msm_rq_stats.o
 endif
 endif
+obj-y += msm_rq_stats.o
 obj-$(CONFIG_MSM_SLEEP_STATS_DEVICE) += idle_stats_device.o
 obj-$(CONFIG_MSM_DCVS) += msm_dcvs_scm.o msm_dcvs.o msm_dcvs_idle.o
 obj-$(CONFIG_MSM_SHOW_RESUME_IRQ) += msm_show_resume_irq.o
